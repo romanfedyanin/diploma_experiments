@@ -28,15 +28,20 @@ def load_data():
 
 
 def change_docs_dict():
+    global docs
+    new_docs = {}
     for key in docs:
+        # if docs[key] == 1:
+        #     continue
         words = nltk.tokenize.word_tokenize(key)
         freq_dict = FreqDist(words)
         normalize_freq_dist(freq_dict, words)
-        dict_of_words_in_text = {}
+        dict_of_words_in_text = []
         for word in freq_dict:
             tfidf_all = number_of_documents * freq_dict[word] / words_docs_count_dict[word]
-            dict_of_words_in_text[word] = tfidf_all
-        docs[key] = dict_of_words_in_text
+            dict_of_words_in_text.append((word, tfidf_all))
+        new_docs[key] = dict_of_words_in_text
+    docs = new_docs
 
 
 def add_text_to_corpus(text, negpos):
@@ -107,7 +112,15 @@ print pos_texts_only_words_freqs
 
 change_docs_dict()
 
-
-
-print text
+f = open('filename.csv','wb')
+for doc in docs:
+    doc_array = docs[doc]
+    doc_array.sort(key=lambda tup: tup[1], reverse=True)
+    doc_array = doc_array[:10]
+    string_to_file = ""
+    for i in range(len(doc_array)-1):
+        string_to_file += doc_array[i][0] + ";"
+    string_to_file += doc_array[len(doc_array)-1][0] + "\n"
+    f.write(string_to_file)
+f.close()
 
