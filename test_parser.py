@@ -99,42 +99,63 @@ def lemmatize_words(words):
     for i in range(len(words)):
         words[i] = stemmer.stem(words[i])
 
+
+def write_array_of_tuples_in_file(array, filename):
+    f = open(filename,'wb')
+    for i in range(len(array)):
+        tuple = array[i]
+        f.write(tuple[0] + ";" + str(tuple[1]) + "\n")
+    f.close()
+
+
 load_data()
-# text = "one thing to bear in mind is that there are many ways to text "
-#
-#
-# print "Text before: "
-# print text
-# text = make_text_with_tfidf(text)
-# print "Text after: "
 
-neg_texts_only_words_freqs = []
-pos_texts_only_words_freqs = []
+words_docs_count_array = []
+words_pos_docs_count_array = []
+words_neg_docs_count_array = []
+
 for key in words_docs_count_dict:
-    if key not in words_docs_neg_count_dict:
-        pos_texts_only_words_freqs.append((key, words_docs_count_dict[key]))
-    if key not in words_docs_pos_count_dict:
-        neg_texts_only_words_freqs.append((key, words_docs_count_dict[key]))
+    words_docs_count_array.append((key, words_docs_count_dict[key]))
+for key in words_docs_neg_count_dict:
+    words_neg_docs_count_array.append((key, words_docs_neg_count_dict[key]))
+for key in words_docs_pos_count_dict:
+    words_pos_docs_count_array.append((key, words_docs_pos_count_dict[key]))
 
-neg_texts_only_words_freqs.sort(key=lambda tup: tup[1], reverse=True)
-neg_texts_only_words_freqs = neg_texts_only_words_freqs[:100]
-print neg_texts_only_words_freqs
+words_docs_count_array.sort(key=lambda tup: tup[1], reverse=True)
+words_pos_docs_count_array.sort(key=lambda tup: tup[1], reverse=True)
+words_neg_docs_count_array.sort(key=lambda tup: tup[1], reverse=True)
 
-pos_texts_only_words_freqs.sort(key=lambda tup: tup[1], reverse=True)
-pos_texts_only_words_freqs = pos_texts_only_words_freqs[:100]
-print pos_texts_only_words_freqs
+write_array_of_tuples_in_file(words_docs_count_array, 'words_count_all_texts.csv')
+write_array_of_tuples_in_file(words_pos_docs_count_array, 'words_count_pos_texts.csv')
+write_array_of_tuples_in_file(words_neg_docs_count_array, 'words_count_neg_texts.csv')
 
-change_docs_dict()
-
-f = open('filename.csv','wb')
-for doc in docs:
-    doc_array = docs[doc]
-    doc_array.sort(key=lambda tup: tup[1], reverse=True)
-    doc_array = doc_array[:10]
-    string_to_file = ""
-    for i in range(len(doc_array)-1):
-        string_to_file += doc_array[i][0] + ";"
-    string_to_file += doc_array[len(doc_array)-1][0] + "\n"
-    f.write(string_to_file)
-f.close()
+# neg_texts_only_words_freqs = []
+# pos_texts_only_words_freqs = []
+# for key in words_docs_count_dict:
+#     if key not in words_docs_neg_count_dict:
+#         pos_texts_only_words_freqs.append((key, words_docs_count_dict[key]))
+#     if key not in words_docs_pos_count_dict:
+#         neg_texts_only_words_freqs.append((key, words_docs_count_dict[key]))
+#
+# neg_texts_only_words_freqs.sort(key=lambda tup: tup[1], reverse=True)
+# neg_texts_only_words_freqs = neg_texts_only_words_freqs[:100]
+# print neg_texts_only_words_freqs
+#
+# pos_texts_only_words_freqs.sort(key=lambda tup: tup[1], reverse=True)
+# pos_texts_only_words_freqs = pos_texts_only_words_freqs[:100]
+# print pos_texts_only_words_freqs
+#
+# change_docs_dict()
+#
+# f = open('filename.csv','wb')
+# for doc in docs:
+#     doc_array = docs[doc]
+#     doc_array.sort(key=lambda tup: tup[1], reverse=True)
+#     doc_array = doc_array[:10]
+#     string_to_file = ""
+#     for i in range(len(doc_array)-1):
+#         string_to_file += doc_array[i][0] + ";"
+#     string_to_file += doc_array[len(doc_array)-1][0] + "\n"
+#     f.write(string_to_file)
+# f.close()
 
