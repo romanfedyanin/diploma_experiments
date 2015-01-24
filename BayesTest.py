@@ -3,7 +3,6 @@ import os
 import nltk
 from NBC import NaiveBayesClassifier
 from nltk.tokenize import RegexpTokenizer
-import math
 
 tokenizer = RegexpTokenizer(r'((?<=[^\w\s])\w(?=[^\w\s])|(\W))+', gaps=True)
 
@@ -21,33 +20,53 @@ class NegPosParser(BaseParser):
 
     labeled_docs = {}
 
-    def loaddata(self):
+    def loaddata(self, intervals):
         result_dict = {}
-        dir_name = os.path.dirname(os.path.abspath(__file__)) + "/neg"
-        # sum = 0
-        for file in os.listdir(dir_name):
-            if file.endswith(".txt"):
-                print(file)
-                with open(dir_name + "/" + file, "r") as myfile:
-                    data = myfile.read().replace('\n', '')
-                    # sum += 1
-                    # if sum < 100:
-                    result_dict[data] = -1
-        dir_name = os.path.dirname(os.path.abspath(__file__)) + "/pos"
-        # sum = 0
-        for file in os.listdir(dir_name):
-            if file.endswith(".txt"):
-                print(file)
-                with open(dir_name + "/" + file, "r") as myfile:
-                    data = myfile.read().replace('\n', '')
-                    # sum += 1
-                    # if sum < 100:
-                    result_dict[data] = 1
+        settings_array = [
+            {
+                "path": "/neg",
+                "negpos": -1
+            },
+            {
+                "path": "/pos",
+                "negpos": 1
+            }
+        ]
+        for i in range(len(settings_array)):
+            setting_dict = settings_array[i]
+            dir_name = os.path.dirname(os.path.abspath(__file__)) + setting_dict["path"]
+            file_names = os.listdir(dir_name)
+            for j in range(len(file_names)):
+                if number_inside_intervals(j+1, intervals):
+                    file_name = file_names[j]
+                    if file_name.endswith(".txt"):
+                        with open(dir_name + "/" + file_name, "r") as myfile:
+                            data = myfile.read().replace('\n', '')
+                            result_dict[data] = setting_dict["negpos"]
+
+        # for file in os.listdir(dir_name):
+        #     if file.endswith(".txt"):
+        #         print(file)
+        #         with open(dir_name + "/" + file, "r") as myfile:
+        #             data = myfile.read().replace('\n', '')
+        #             # sum += 1
+        #             # if sum < 100:
+        #             result_dict[data] = -1
+        # dir_name = os.path.dirname(os.path.abspath(__file__)) + "/pos"
+        # # sum = 0
+        # for file in os.listdir(dir_name):
+        #     if file.endswith(".txt"):
+        #         print(file)
+        #         with open(dir_name + "/" + file, "r") as myfile:
+        #             data = myfile.read().replace('\n', '')
+        #             # sum += 1
+        #             # if sum < 100:
+        #             result_dict[data] = 1
         self.labeled_docs = result_dict.copy()
         return result_dict
 
-    def train(self):
-        train_dict = self.loaddata()
+    def train(self, intervals):
+        train_dict = self.loaddata(intervals)
         all_feats = []
         for text, value in train_dict.items():
             tokens = nltk.tokenize.word_tokenize(text)
@@ -73,40 +92,49 @@ def features_from_text(text):
     terms = tokenizer.tokenize(text)
     return dict(((token, True) for token in terms))
 
-parser = NegPosParser()
-parser.train()
 
-number_of_docs = 0
-right_classification_docs = 0
-docs_probs = []
-for doc in parser.labeled_docs:
-    features = features_from_text(doc)
-    prob_dist = parser._classifier.prob_classify(features)
-    neg_prob = prob_dist.prob('neg')
-    pos_prob = prob_dist.prob('pos')
-    docs_probs.append(("%.4f" % pos_prob, "%.4f" % neg_prob, "neg" if parser.labeled_docs[doc] == -1 else "pos"))
-    label = parser._classifier.classify(features)
-    number_of_docs += 1
-    if ((label == 'neg') & (parser.labeled_docs[doc] == -1)) | ((label == 'pos') & (parser.labeled_docs[doc] == 1)):
-        right_classification_docs += 1
+def number_inside_intervals(number, intervals):
+    for interval in intervals:
+        if interval[0] <= number <= interval[1]:
+            return True
+    return False
 
-write_array_of_triples_in_file(docs_probs, "docs_probs.csv")
+FIRST_INTERVAL = (1, 333)
+SECOND_INTERVAL = (334, 666)
+THIRD_INTERVAL = (667, 1000)
+INTERVALS_ARRAY = [
+    [[FIRST_INTERVAL, SECOND_INTERVAL], [THIRD_INTERVAL]],
+    [[FIRST_INTERVAL, THIRD_INTERVAL], [SECOND_INTERVAL]],
+    [[SECOND_INTERVAL, THIRD_INTERVAL], [FIRST_INTERVAL]]
+]
 
-print 2
+for i in range(len(INTERVALS_ARRAY)):
+    intervals_for_learning = INTERVALS_ARRAY[i][0]
+    test_intervals = INTERVALS_ARRAY[i][1]
 
-feats = {'great':True, 'good':True}
-prob_dist = parser._classifier.prob_classify(feats)
-
-classification=prob_dist.max()
-p_pos=prob_dist.prob('pos')
-p_neg=prob_dist.prob("neg")
-
-print 1
+    parser = NegPosParser()
+    parser.train(intervals_for_learning)
 
 
+    test_parser = NegPosParser()
+    test_parser.loaddata(test_intervals)
 
-from textblob.base import BaseSentimentAnalyzer
-from textblob.en.sentiments import (DISCRETE, CONTINUOUS,
-                                PatternAnalyzer, NaiveBayesAnalyzer)
+    number_of_docs = 0
+    right_classification_docs = 0
+    docs_probs = []
+    for doc in test_parser.labeled_docs:
+        features = features_from_text(doc)
+        prob_dist = parser._classifier.prob_classify(features)
+        neg_prob = prob_dist.prob('neg')
+        pos_prob = prob_dist.prob('pos')
+        docs_probs.append(("%.4f" % pos_prob, "%.4f" % neg_prob, "neg" if test_parser.labeled_docs[doc] == -1 else "pos"))
+        label = parser._classifier.classify(features)
+        number_of_docs += 1
+        if ((label == 'neg') & (test_parser.labeled_docs[doc] == -1)) | ((label == 'pos') & (test_parser.labeled_docs[doc] == 1)):
+            right_classification_docs += 1
 
-analyzer = NaiveBayesAnalyzer()
+    print i
+    print number_of_docs
+    print right_classification_docs
+    write_array_of_triples_in_file(docs_probs, "configuration_" + str(i) + "_docs_probs.csv")
+
