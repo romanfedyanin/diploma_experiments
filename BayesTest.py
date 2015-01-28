@@ -44,24 +44,6 @@ class NegPosParser(BaseParser):
                             data = myfile.read().replace('\n', '')
                             result_dict[data] = setting_dict["negpos"]
 
-        # for file in os.listdir(dir_name):
-        #     if file.endswith(".txt"):
-        #         print(file)
-        #         with open(dir_name + "/" + file, "r") as myfile:
-        #             data = myfile.read().replace('\n', '')
-        #             # sum += 1
-        #             # if sum < 100:
-        #             result_dict[data] = -1
-        # dir_name = os.path.dirname(os.path.abspath(__file__)) + "/pos"
-        # # sum = 0
-        # for file in os.listdir(dir_name):
-        #     if file.endswith(".txt"):
-        #         print(file)
-        #         with open(dir_name + "/" + file, "r") as myfile:
-        #             data = myfile.read().replace('\n', '')
-        #             # sum += 1
-        #             # if sum < 100:
-        #             result_dict[data] = 1
         self.labeled_docs = result_dict.copy()
         return result_dict
 
@@ -70,7 +52,6 @@ class NegPosParser(BaseParser):
         all_feats = []
         for text, value in train_dict.items():
             tokens = nltk.tokenize.word_tokenize(text)
-            # feats = [(token, True) for token in tokens]
             feats = dict(((token, True) for token in tokens))
             if train_dict[text] == 1:
                 all_feats.append((feats, 'pos'))
@@ -121,20 +102,35 @@ for i in range(len(INTERVALS_ARRAY)):
 
     number_of_docs = 0
     right_classification_docs = 0
+    wrong_classified_to_pos = 0
+    wrong_classified_to_neg = 0
     docs_probs = []
     for doc in test_parser.labeled_docs:
         features = features_from_text(doc)
         prob_dist = parser._classifier.prob_classify(features)
         neg_prob = prob_dist.prob('neg')
         pos_prob = prob_dist.prob('pos')
-        docs_probs.append(("%.4f" % pos_prob, "%.4f" % neg_prob, "neg" if test_parser.labeled_docs[doc] == -1 else "pos"))
+        docs_probs.append(("%.7f" % pos_prob, "%.7f" % neg_prob, "neg" if test_parser.labeled_docs[doc] == -1 else "pos"))
         label = parser._classifier.classify(features)
         number_of_docs += 1
         if ((label == 'neg') & (test_parser.labeled_docs[doc] == -1)) | ((label == 'pos') & (test_parser.labeled_docs[doc] == 1)):
             right_classification_docs += 1
+        else:
+            print "\nWrong classified:"
+            print pos_prob
+            print neg_prob
+            print len(features)
 
-    print i
-    print number_of_docs
-    print right_classification_docs
+            label = parser._classifier.classify(features)
+            if label == 'pos':
+                wrong_classified_to_pos += 1
+            else:
+                wrong_classified_to_neg += 1
+
+    print "Configuration " + str(i)
+    print "Number of documents: " + str(number_of_docs)
+    print "Right classified documents: " + str(right_classification_docs)
+    print "Wrong classified documents as positive: " + str(wrong_classified_to_pos)
+    print "Wrong classified documents as negative: " + str(wrong_classified_to_neg)
     write_array_of_triples_in_file(docs_probs, "configuration_" + str(i) + "_docs_probs.csv")
 

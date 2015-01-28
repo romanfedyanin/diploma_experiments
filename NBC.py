@@ -107,10 +107,15 @@ class NaiveBayesClassifier(ClassifierI):
             logprob[label] = self._label_probdist.logprob(label)
 
         # Then add in the log probability of features given labels.
+
+        print ("\n\nExperiment ")
         for label in self._labels:
+            print ("\nLabel: " + label)
             for (fname, fval) in featureset.items():
                 if (label, fname) in self._feature_probdist:
                     feature_probs = self._feature_probdist[label,fname]
+                    # print ("Feature: " + str(fname) + "  Prob: " + str(feature_probs.logprob(fval)))
+                    print (str(fname) + ";" + str(feature_probs.logprob(fval)))
                     logprob[label] += feature_probs.logprob(fval)
                 else:
                     # nb: This case will never come up if the
