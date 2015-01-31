@@ -3,6 +3,9 @@ import os
 import nltk
 from NBC import NaiveBayesClassifier
 from nltk.tokenize import RegexpTokenizer
+from numpy import genfromtxt
+import numpy
+import pandas as pd
 
 tokenizer = RegexpTokenizer(r'((?<=[^\w\s])\w(?=[^\w\s])|(\W))+', gaps=True)
 
@@ -22,27 +25,27 @@ class NegPosParser(BaseParser):
 
     def loaddata(self, intervals):
         result_dict = {}
-        settings_array = [
-            {
-                "path": "/neg",
-                "negpos": -1
-            },
-            {
-                "path": "/pos",
-                "negpos": 1
-            }
-        ]
-        for i in range(len(settings_array)):
-            setting_dict = settings_array[i]
-            dir_name = os.path.dirname(os.path.abspath(__file__)) + setting_dict["path"]
-            file_names = os.listdir(dir_name)
-            for j in range(len(file_names)):
-                if number_inside_intervals(j+1, intervals):
-                    file_name = file_names[j]
-                    if file_name.endswith(".txt"):
-                        with open(dir_name + "/" + file_name, "r") as myfile:
-                            data = myfile.read().replace('\n', '')
-                            result_dict[data] = setting_dict["negpos"]
+        df = pd.read_csv('training.csv', sep=',',header=None)
+        csv_strings = df.values
+        print len(csv_strings)
+
+        current_pos_string_number = 0
+        current_neg_string_number = 0
+        for i in range(len(csv_strings)):
+            csv_string = csv_strings[i]
+            if len(csv_string[5]) < 10:
+                continue
+            if csv_string[0] == 0:
+                current_neg_string_number += 1
+                negpos = -1
+                if not number_inside_intervals(current_neg_string_number, intervals):
+                    continue
+            else:
+                current_pos_string_number += 1
+                negpos = 1
+                if not number_inside_intervals(current_pos_string_number, intervals):
+                    continue
+            result_dict[csv_string[5]] = negpos
 
         self.labeled_docs = result_dict.copy()
         return result_dict
@@ -51,7 +54,12 @@ class NegPosParser(BaseParser):
         train_dict = self.loaddata(intervals)
         all_feats = []
         for text, value in train_dict.items():
-            tokens = nltk.tokenize.word_tokenize(text)
+            try:
+                tokens = nltk.tokenize.word_tokenize(text)
+
+            except UnicodeDecodeError:
+                print "Oops!  That was no valid text..."
+            # tokens = nltk.tokenize.word_tokenize(text)
             feats = dict(((token, True) for token in tokens))
             if train_dict[text] == 1:
                 all_feats.append((feats, 'pos'))
@@ -59,6 +67,7 @@ class NegPosParser(BaseParser):
                 all_feats.append((feats, 'neg'))
 
         self._classifier = NaiveBayesClassifier.train(all_feats)
+        print self._classifier.most_informative_features()
 
 
 def write_array_of_triples_in_file(array, filename):
@@ -80,9 +89,9 @@ def number_inside_intervals(number, intervals):
             return True
     return False
 
-FIRST_INTERVAL = (1, 333)
-SECOND_INTERVAL = (334, 666)
-THIRD_INTERVAL = (667, 1000)
+FIRST_INTERVAL = (1, 25000)
+SECOND_INTERVAL = (25001, 50000)
+THIRD_INTERVAL = (50001, 75000)
 INTERVALS_ARRAY = [
     [[FIRST_INTERVAL, SECOND_INTERVAL], [THIRD_INTERVAL]],
     [[FIRST_INTERVAL, THIRD_INTERVAL], [SECOND_INTERVAL]],
