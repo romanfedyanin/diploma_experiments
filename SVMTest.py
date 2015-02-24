@@ -11,9 +11,9 @@ from datetime import datetime
 tokenizer = RegexpTokenizer(r'((?<=[^\w\s])\w(?=[^\w\s])|(\W))+', gaps=True)
 stemmer = PorterStemmer()
 
-FIRST_INTERVAL = (1, 100)
-SECOND_INTERVAL = (101, 200)
-THIRD_INTERVAL = (201, 300)
+FIRST_INTERVAL = (1, 3000)
+SECOND_INTERVAL = (3001, 6000)
+THIRD_INTERVAL = (6001, 9000)
 
 INTERVALS_ARRAY = [
     [[SECOND_INTERVAL, THIRD_INTERVAL], [FIRST_INTERVAL]],
@@ -61,9 +61,13 @@ class NegPosParser():
         self.features_words = self.words_docs_count_dict.keys()
 
     def load_data(self, intervals):
+        # filenames = [
+        #     "neg_reviews.json",
+        #     "pos_reviews.json"
+        # ]
         filenames = [
-            "neg_reviews.json",
-            "pos_reviews.json"
+            "neg_tweets.json",
+            "pos_tweets.json"
         ]
         for i in range(len(filenames)):
             filename = filenames[i]
@@ -144,14 +148,34 @@ for i in range(len(INTERVALS_ARRAY)):
     right_classified_docs = 0
     classified_docs = 0
     i = 0
+    true_positive = 0
+    true_negative = 0
+    false_positive = 0
+    false_negative = 0
     for doc_text, label in test_parser.labeled_docs.iteritems():
         classified_docs += 1
+
         if Z[i] == label:
-            right_classified_docs += 1
+            if label == 1:
+                true_positive += 1
+            else:
+                true_negative += 1
+        else:
+            if label == 1:
+                false_positive += 1
+            else:
+                false_negative += 1
         i += 1
 
     print "Classified docs: " + str(classified_docs)
-    print "Right classified docs: " + str(right_classified_docs)
-    print "Precision: " + str(right_classified_docs/classified_docs)
+    # print "Classified docs: " + str(number_of_docs)
+    precision = true_positive/(true_positive + false_positive)
+    print "Precision: " + str(precision)
+    recall = true_positive/(true_positive + false_negative)
+    print "Recall: " + str(recall)
+    print "F-measure: " + str(2/(1/precision + 1/recall))
+    print "Accuracy: " + str((true_negative + true_positive) / (true_negative + true_positive + false_negative + false_positive))
+    # print "Right classified docs: " + str(right_classified_docs)
+    # print "Precision: " + str(right_classified_docs/classified_docs)
     print_time()
     print "-----\n\n"
