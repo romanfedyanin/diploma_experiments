@@ -18,9 +18,6 @@ corpus = Corpus(Corpus.russian_reviews)
 INTERVALS_ARRAY = corpus.intervals_array()
 CORPUS_FILE_NAMES = corpus.file_names()
 
-number_of_documents = 0
-number_of_pos_documents = 0
-number_of_neg_documents = 0
 docs = {}
 pos_neg_docs = {}
 words_docs_count_dict = {}
@@ -44,12 +41,6 @@ def load_data(intervals):
     words_docs_pos_count_dict = {}
     global words_docs_neg_count_dict
     words_docs_neg_count_dict = {}
-    global number_of_documents
-    number_of_documents = 0
-    global number_of_pos_documents
-    number_of_pos_documents = 0
-    global number_of_neg_documents
-    number_of_neg_documents = 0
 
     for i in range(len(CORPUS_FILE_NAMES)):
         filename = CORPUS_FILE_NAMES[i]
@@ -60,7 +51,6 @@ def load_data(intervals):
             if number_inside_intervals(j, intervals):
                 add_text_to_corpus(text, label)
             j += 1
-
 
 
 def change_docs_dict():
@@ -76,21 +66,12 @@ def change_docs_dict():
             words = tokenizer.tokenize(key)
         freq_dict = FreqDist(words)
         normalize_freq_dist(freq_dict, words)
-        dict_of_words_in_text = {}
-        for word in freq_dict:
-            tfidf_all = number_of_documents * freq_dict[word] / words_docs_count_dict[word]
-            dict_of_words_in_text[word] = tfidf_all
-        new_docs[key] = dict_of_words_in_text
+        new_docs[key] = freq_dict
     docs = new_docs
 
 
 def add_text_to_corpus(text, negpos):
-    global number_of_documents, number_of_pos_documents, number_of_neg_documents, docs
-    number_of_documents += 1
-    if negpos == 1:
-        number_of_pos_documents += 1
-    else:
-        number_of_neg_documents += 1
+    global docs
     text = text.lower()
     docs[text] = negpos
     if LEMMATIZE:
@@ -104,10 +85,6 @@ def add_text_to_corpus(text, negpos):
             words_docs_pos_count_dict[k] = words_docs_pos_count_dict.get(k, 0.0) + 1.0
         else:
             words_docs_neg_count_dict[k] = words_docs_neg_count_dict.get(k, 0.0) + 1.0
-
-
-def number_of_words_in_text(text):
-    return len(tokenizer.tokenize(text))
 
 
 def normalize_freq_dist(freq_dist, words):
