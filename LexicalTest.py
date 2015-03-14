@@ -10,7 +10,6 @@ import pymorphy2
 
 from CommonSettings import *
 
-
 tokenizer = RegexpTokenizer(r'((?<=[^\w\s])\w(?=[^\w\s])|(\W))+', gaps=True)
 stemmer = PorterStemmer()
 morphAnalyzer = pymorphy2.MorphAnalyzer()
@@ -33,7 +32,6 @@ N_DIFF = 40
 N_TIMES_DIFF = 1.3
 MIN_TIMES = 2
 GOOD_WORDS_COUNTS_ARRAY = [1000] # Различное количество "хорошо характерихующих" слов (good words)
-
 
 def load_data(intervals):
     global docs
@@ -118,7 +116,6 @@ def normalize_freq_dist(freq_dist, words):
         freq_dist[k] /= length
 
 
-
 #-------Experiments for different configurations-----------
 
 for i in range(len(INTERVALS_ARRAY)):
@@ -127,7 +124,6 @@ for i in range(len(INTERVALS_ARRAY)):
     print "Start loading learning data"
     load_data(intervals_for_learning)
     print "Loading finished \n\n"
-
 
     good_pos_words_array = []
     good_neg_words_array = []
@@ -157,21 +153,15 @@ for i in range(len(INTERVALS_ARRAY)):
     for j in range(len(GOOD_WORDS_COUNTS_ARRAY)):
         good_words_count = GOOD_WORDS_COUNTS_ARRAY[j]
 
-        top_good_pos_words_array = good_pos_words_array[:good_words_count]
-        top_good_neg_words_array = good_neg_words_array[:good_words_count]
+        top_good_pos_words_array = list(x[0] for x in good_pos_words_array[:good_words_count])
+        top_good_neg_words_array = list(x[0] for x in good_neg_words_array[:good_words_count])
 
-        top_good_pos_words_array = list(x[0] for x in top_good_pos_words_array)
-        top_good_neg_words_array = list(x[0] for x in top_good_neg_words_array)
-
-        pos_counts = []
-        neg_counts = []
-
-        print "positive words: "
-        print top_good_pos_words_array
-        print "negative words: "
-        print top_good_neg_words_array
-
-        result_dict_for_json = {}
+        true_positive = 0
+        false_negative = 0
+        true_negative = 0
+        false_positive = 0
+        equal_count_positive_text = 0
+        equal_count_negative_text = 0
         for key in docs:
             number_of_good_pos_words_in_doc = 0
             number_of_good_neg_words_in_doc = 0
@@ -183,51 +173,24 @@ for i in range(len(INTERVALS_ARRAY)):
                 if word in doc_dict:
                     number_of_good_neg_words_in_doc += 1
             if pos_neg_docs[key] == 1:
-                pos_counts.append((number_of_good_pos_words_in_doc, number_of_good_neg_words_in_doc))
-                if number_of_good_pos_words_in_doc > number_of_good_neg_words_in_doc:
-                    result_dict_for_json[key] = 1
+                if number_of_good_pos_words_in_doc == number_of_good_neg_words_in_doc:
+                    equal_count_positive_text += 1
+                elif number_of_good_pos_words_in_doc > number_of_good_neg_words_in_doc:
+                    true_positive += 1
                 else:
-                    result_dict_for_json[key] = 0
+                    false_negative += 1
             else:
-                neg_counts.append((number_of_good_pos_words_in_doc, number_of_good_neg_words_in_doc))
+                if number_of_good_pos_words_in_doc == number_of_good_neg_words_in_doc:
+                    equal_count_negative_text += 1
                 if number_of_good_pos_words_in_doc < number_of_good_neg_words_in_doc:
-                    result_dict_for_json[key] = 1
+                    true_negative += 1
                 else:
-                    result_dict_for_json[key] = 0
+                    false_positive += 1
+        true_positive += int(equal_count_positive_text * 0.5)
+        false_negative += int(equal_count_positive_text * 0.5)
+        true_negative += int(equal_count_negative_text * 0.5)
+        false_positive += int(equal_count_negative_text * 0.5)
 
-        number_of_docs = 0
-        true_positive = 0
-        false_negative = 0
-        mean = 0
-        for (pos_words_in_doc, neg_words_in_doc) in pos_counts:
-            if pos_words_in_doc == neg_words_in_doc:
-                mean += 1
-            elif pos_words_in_doc > neg_words_in_doc:
-
-                true_positive += 1
-            else:
-                false_negative += 1
-            number_of_docs += 1
-        true_positive += int(mean * 0.5)
-        false_negative += int(mean * 0.5)
-
-        number_of_docs = 0
-        true_negative = 0
-        false_positive = 0
-        mean = 0
-        for (pos_words_in_doc, neg_words_in_doc) in neg_counts:
-            if pos_words_in_doc == neg_words_in_doc:
-                mean += 1
-            elif pos_words_in_doc < neg_words_in_doc:
-                true_negative += 1
-            else:
-                false_positive += 1
-            number_of_docs += 1
-        true_negative += int(mean * 0.5)
-        false_positive += int(mean * 0.5)
-
-        with open("result_dict_kw_russian_reviews.json", 'w') as outfile:
-            json.dump(result_dict_for_json, outfile)
         print "\n\n--------------Results--------------"
         precision_pos = true_positive/(true_positive + false_positive)
         precision_neg = true_negative/(true_negative + false_negative)
@@ -244,12 +207,11 @@ for i in range(len(INTERVALS_ARRAY)):
         print "Accuracy: " + str(accuracy)
         print "---------------------------------------\n\n"
 
-        csv_string = "%.3f;%.3f;%.3f;%.3f" % (macro_precision, macro_recall, macro_fmeasure, accuracy)
-
-        csv_filename = "KW_configuration_" + str(i) + "_"
-        csv_filename += "russian_reviews.csv"
-        with open(csv_filename, "wb") as text_file:
-            text_file.write(csv_string)
+        # csv_string = "%.3f;%.3f;%.3f;%.3f" % (macro_precision, macro_recall, macro_fmeasure, accuracy)
+        # csv_filename = "KW_configuration_" + str(i) + "_"
+        # csv_filename += "russian_reviews.csv"
+        # with open(csv_filename, "wb") as text_file:
+        #     text_file.write(csv_string)
 
 
 
